@@ -43,6 +43,12 @@ const HUD = {
     if (st === 'intro') this.drawIntro();
     if (st === 'dead') this.drawDead();
     if (st === 'victory') this.drawVictory();
+    if (TOUCH.on && (st === 'play' || st === 'dead')) TOUCH.draw(c, W, H);
+    if (TOUCH.on && H > W) {
+      c.fillStyle = 'rgba(0,0,0,0.85)'; c.fillRect(0, 0, W, H);
+      this.text('GIRE O CELULAR', W / 2, H / 2 - 10, '#7f7', 2, 'center');
+      this.text('O JOGO É NA HORIZONTAL', W / 2, H / 2 + 14, '#aca', 1, 'center');
+    }
     if (st === 'play' && !G.locked && !MENU.active()) {
       c.fillStyle = 'rgba(0,0,0,0.5)'; c.fillRect(0, H / 2 - 20, W, 40);
       this.text('CLIQUE PARA CONTINUAR', W / 2, H / 2 - 7, '#7f7', 2, 'center');
@@ -89,23 +95,25 @@ const HUD = {
       this.text(String(n), W - 32, y0 - 1, n > 0 ? '#ffe9a0' : '#f55', 3, 'right', '#310');
       this.iconAmmo(W - 26, y0 + 2, w.ammo);
     } else this.text('--', W - 32, y0 - 1, '#ffe9a0', 3, 'right', '#310');
-    this.text(w.name + (P.cur === 'pistol' && P.dual ? ' x2' : ''), W - 10, y0 - 14, '#9c9', 1, 'right');
+    if (!TOUCH.on) this.text(w.name + (P.cur === 'pistol' && P.dual ? ' x2' : ''), W - 10, y0 - 14, '#9c9', 1, 'right');
     // slots
     let sx = W - 10 - 6 * 12;
-    for (const k of WEAPON_ORDER) {
-      const d = WEAPONS[k];
-      const owned = P.weapons[k];
-      const col = k === P.cur ? '#6f6' : owned ? '#ddd' : '#333';
-      if (k === P.cur) { c.fillStyle = 'rgba(40,160,70,0.5)'; c.fillRect(sx - 2, y0 - 27, 10, 12); }
-      this.text(String(d.slot), sx, y0 - 26, col, 1);
-      sx += 12;
+    if (!TOUCH.on) {
+      for (const k of WEAPON_ORDER) {
+        const d = WEAPONS[k];
+        const owned = P.weapons[k];
+        const col = k === P.cur ? '#6f6' : owned ? '#ddd' : '#333';
+        if (k === P.cur) { c.fillStyle = 'rgba(40,160,70,0.5)'; c.fillRect(sx - 2, y0 - 27, 10, 12); }
+        this.text(String(d.slot), sx, y0 - 26, col, 1);
+        sx += 12;
+      }
+      // munição reserva pequena
+      const ay = y0 - 42;
+      const am = [['BALAS', 'bullets'], ['CART', 'shells'], ['ROJ', 'rockets']];
+      am.forEach(([lab, k], i) => {
+        this.text(lab + ' ' + P.ammo[k] + '/' + AMMO_MAX[k], W - 10, ay - i * 10, w.ammo === k ? '#fe8' : '#8a8', 1, 'right');
+      });
     }
-    // munição reserva pequena
-    const ay = y0 - 42;
-    const am = [['BALAS', 'bullets'], ['CART', 'shells'], ['ROJ', 'rockets']];
-    am.forEach(([lab, k], i) => {
-      this.text(lab + ' ' + P.ammo[k] + '/' + AMMO_MAX[k], W - 10, ay - i * 10, w.ammo === k ? '#fe8' : '#8a8', 1, 'right');
-    });
     // chaves
     let kx = 80;
     if (P.keys.green) { this.iconKey(kx, y0 + 4, '#3e6'); kx += 16; }
@@ -347,6 +355,96 @@ const MENU = {
       const lines = HUD.wrap('JOGO DE PARÓDIA E OBRA DE FICÇÃO, SEM LIGAÇÃO OFICIAL COM CLUBES OU TORCIDAS. RIVALIDADE É NO CAMPO: NA VIDA REAL, VIOLÊNCIA NÃO É TORCIDA.', W - 40, 1);
       lines.forEach((l, i) => T2(l, W / 2, H - 14 - (lines.length - i) * 10, '#8a8', 1, 'center'));
       T2('INSPIRADO EM DUSK, DOOM E QUAKE', W / 2, H - 12, '#575', 1, 'center');
+    }
+  },
+};
+
+// ---------------------------------------------------------------------------
+// Controles de toque (celular/tablet): analógico à esquerda, olhar arrastando
+// à direita e botões de ação.
+// ---------------------------------------------------------------------------
+const TOUCH = {
+  on: false, move: null, look: null, pressed: {}, lookDX: 0, lookDY: 0,
+  buttons(W, H) {
+    return [
+      { id: 'fire', x: W - 58, y: H - 92, r: 32, label: 'TIRO' },
+      { id: 'jump', x: W - 122, y: H - 50, r: 24, label: 'PULO' },
+      { id: 'crouch', x: W - 128, y: H - 118, r: 20, label: 'AGACHA' },
+      { id: 'next', x: W - 52, y: H - 168, r: 20, label: 'ARMA' },
+      { id: 'pause', x: W - 22, y: 24, r: 14, label: 'II' },
+    ];
+  },
+  bind(g) {
+    const pos = (t) => [t.clientX / HUD.scale, t.clientY / HUD.scale];
+    const start = (e) => {
+      AUDIO.init();
+      if (!this.on) { this.on = true; g.locked = true; }
+      e.preventDefault();
+      for (const t of e.changedTouches) {
+        const [x, y] = pos(t);
+        if (MENU.active()) { MENU.hover(x, y); MENU.click(x, y); continue; }
+        if (g.state === 'intro') { if (g.introT > 0.4) g.startPlay(); continue; }
+        if (g.state === 'victory') { if (g.victoryT > 2) g.toTitle(); continue; }
+        if (g.state === 'dead') { if (g.player.deadT > 1) g.respawn(); continue; }
+        if (g.state !== 'play') continue;
+        const b = this.buttons(HUD.W, HUD.H).find((b) => Math.hypot(x - b.x, y - b.y) < b.r + 8);
+        if (b) {
+          this.pressed[b.id] = t.identifier;
+          if (b.id === 'next') g.player.cycle(1);
+          if (b.id === 'pause') g.pause();
+        } else if (x < HUD.W * 0.42 && !this.move) this.move = { id: t.identifier, ox: x, oy: y, x, y };
+        else if (!this.look) this.look = { id: t.identifier, x: t.clientX, y: t.clientY };
+      }
+    };
+    const move = (e) => {
+      e.preventDefault();
+      for (const t of e.changedTouches) {
+        if (this.move && t.identifier === this.move.id) { const [x, y] = pos(t); this.move.x = x; this.move.y = y; }
+        if (this.look && t.identifier === this.look.id) { this.lookDX += t.clientX - this.look.x; this.lookDY += t.clientY - this.look.y; this.look.x = t.clientX; this.look.y = t.clientY; }
+      }
+    };
+    const end = (e) => {
+      for (const t of e.changedTouches) {
+        if (this.move && t.identifier === this.move.id) this.move = null;
+        if (this.look && t.identifier === this.look.id) this.look = null;
+        for (const k in this.pressed) if (this.pressed[k] === t.identifier) delete this.pressed[k];
+      }
+    };
+    document.addEventListener('touchstart', start, { passive: false });
+    document.addEventListener('touchmove', move, { passive: false });
+    document.addEventListener('touchend', end);
+    document.addEventListener('touchcancel', end);
+  },
+  apply(inp, s) {
+    if (this.move) {
+      const dx = this.move.x - this.move.ox, dy = this.move.y - this.move.oy;
+      inp.side = clamp(dx / 28, -1, 1); inp.fwd = clamp(-dy / 28, -1, 1);
+      if (Math.abs(inp.side) < 0.15) inp.side = 0;
+      if (Math.abs(inp.fwd) < 0.15) inp.fwd = 0;
+    }
+    const k = 0.0045 * s.sens;
+    inp.mx += this.lookDX * k; inp.my += this.lookDY * k * (s.invert ? -1 : 1);
+    this.lookDX = 0; this.lookDY = 0;
+    if (this.pressed.fire !== undefined) inp.fire = true;
+    if (this.pressed.jump !== undefined) inp.jump = true;
+    if (this.pressed.crouch !== undefined) inp.crouch = true;
+  },
+  draw(c, W, H) {
+    for (const b of this.buttons(W, H)) {
+      const on = this.pressed[b.id] !== undefined;
+      c.fillStyle = on ? 'rgba(80,220,120,0.45)' : 'rgba(0,0,0,0.3)';
+      c.strokeStyle = 'rgba(160,255,180,0.55)';
+      c.beginPath(); c.arc(b.x, b.y, b.r, 0, TAU); c.fill(); c.stroke();
+      HUD.text(b.label, b.x, b.y - 4, 'rgba(220,255,225,0.9)', 1, 'center');
+    }
+    if (this.move) {
+      c.strokeStyle = 'rgba(160,255,180,0.5)';
+      c.beginPath(); c.arc(this.move.ox, this.move.oy, 30, 0, TAU); c.stroke();
+      c.fillStyle = 'rgba(160,255,180,0.35)';
+      const dx = clamp(this.move.x - this.move.ox, -30, 30), dy = clamp(this.move.y - this.move.oy, -30, 30);
+      c.beginPath(); c.arc(this.move.ox + dx, this.move.oy + dy, 12, 0, TAU); c.fill();
+    } else {
+      HUD.text('ARRASTE AQUI PARA ANDAR', W * 0.2, H - 70, 'rgba(200,255,210,0.35)', 1, 'center');
     }
   },
 };

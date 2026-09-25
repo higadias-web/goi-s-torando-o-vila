@@ -143,8 +143,12 @@ const G = {
   },
   pause() { if (this.state !== 'play') return; this.state = 'pause'; MENU.close(); MENU.open('pause'); this.unlock(); this.keys = {}; this.mouse = {}; },
   resume() { if (this.state !== 'pause') return; MENU.close(); this.state = this.player.alive ? 'play' : 'dead'; this.lock(); },
-  lock() { try { const p = this.cv.requestPointerLock(); if (p && p.catch) p.catch(() => {}); } catch (e) { /* ignora */ } },
-  unlock() { if (document.pointerLockElement) document.exitPointerLock(); },
+  lock() {
+    if (TOUCH.on || this.noLock) { this.locked = true; return; }
+    const fail = () => { this.noLock = true; this.locked = true; HUD.msg('MOUSE SEM TRAVA: MOVA O MOUSE DENTRO DA JANELA PARA MIRAR'); };
+    try { const p = this.cv.requestPointerLock(); if (p && p.catch) p.catch(fail); } catch (e) { fail(); }
+  },
+  unlock() { if (document.pointerLockElement) document.exitPointerLock(); if (TOUCH.on || this.noLock) this.locked = false; },
   // ------------------------------------------------------------------
   bindInput() {
     const prevent = new Set(['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Tab', 'Backspace']);
@@ -165,11 +169,15 @@ const G = {
     });
     document.addEventListener('keyup', (e) => { this.keys[e.code] = false; });
     window.addEventListener('blur', () => { this.keys = {}; this.mouse = {}; });
+    document.addEventListener('pointerlockerror', () => { if (this.state === 'play' || this.state === 'dead') { this.noLock = true; this.locked = true; } });
+    TOUCH.bind(this);
     document.addEventListener('mousemove', (e) => {
-      if (this.locked) { this.mdx += e.movementX; this.mdy += e.movementY; }
+      if (TOUCH.on) return;
+      if (this.locked) { this.mdx += e.movementX || 0; this.mdy += e.movementY || 0; }
       else { HUD.mouse.x = e.clientX / HUD.scale; HUD.mouse.y = e.clientY / HUD.scale; if (MENU.active()) MENU.hover(HUD.mouse.x, HUD.mouse.y); }
     });
     document.addEventListener('mousedown', (e) => {
+      if (TOUCH.on) return;
       AUDIO.init();
       if (MENU.active()) { MENU.click(e.clientX / HUD.scale, e.clientY / HUD.scale); return; }
       if (this.state === 'intro') { if (this.introT > 0.4) this.startPlay(); return; }
@@ -184,6 +192,7 @@ const G = {
     document.addEventListener('contextmenu', (e) => e.preventDefault());
     document.addEventListener('wheel', (e) => { if (this.state === 'play' && this.locked) this.player.cycle(e.deltaY > 0 ? 1 : -1); }, { passive: true });
     document.addEventListener('pointerlockchange', () => {
+      if (this.noLock || TOUCH.on) return;
       this.locked = document.pointerLockElement === this.cv;
       if (!this.locked && this.state === 'play') this.pause();
     });
@@ -199,6 +208,7 @@ const G = {
       mx: this.mdx * sens, my: this.mdy * sens * (s.invert ? -1 : 1),
     };
     this.mdx = 0; this.mdy = 0;
+    if (TOUCH.on) TOUCH.apply(inp, s);
     return inp;
   },
   // ------------------------------------------------------------------
