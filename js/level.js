@@ -414,7 +414,7 @@ function buildSerrinha(world) {
   const bn = [['banner_goias', -34], ['banner_fjg', -22], ['banner_tigre', -10], ['banner_verdao', 2], ['banner_fjg', 14], ['banner_serrinha', 26]];
   for (const [t, x] of bn) L.sign('pz', x, 6, -47.3, x + 8, 8, -47.2, t);
   // bateria da torcida no topo + pedestal do lança-rojão
-  L.box(-1, 5.4, -46.6, 1, 6.0, -45.0, { tex: { top: 'metal', o: 'paint' }, tint: GREEN });
+  L.box(-1, 5.4, -46.6, 1, 5.9, -45.0, { tex: { top: 'metal', o: 'paint' }, tint: GREEN });
   for (const [dx, dz, r] of [[-3, -46, 0.4], [-4.2, -45.4, 0.35], [3, -46, 0.4], [4.3, -45.5, 0.3], [-2.4, -44.8, 0.28]]) L.cylinder(dx, 5.4, dz, r, 0.6 + r, 'drum', 'drum_top');
   // sinalizadores dos invasores na arquibancada
   L.ent('emitter', -20, standNY(nStepZ(3)), nStepZ(3), { kind: 'flare' });
@@ -547,8 +547,8 @@ function buildSerrinha(world) {
   L.item('empadao', -92, 4.2, -27);
   L.item('shellsBig', -89, 4.2, -34.5);
   L.item('bulletsBig', -88, 4.2, -30);
-  L.enemy('vileiro', -72, 0, 12, Math.PI);
-  L.enemy('vileiro', -78.5, 0, 1, Math.PI);
+  L.enemy('vileiro', -72, 0, 12, 0.3);
+  L.enemy('vileiro', -78.5, 0, 1, -0.4);
   L.enemy('vileiro', -68, 0, -8, 0.4);
   L.enemy('vileiro', -74.5, 0, -21, Math.PI);
   L.enemy('vileiro', -80, 0, -27, 2.6);
@@ -627,7 +627,7 @@ function buildSerrinha(world) {
   L.enemy('rojoeiro', -14, 5.4, -45.5, Math.PI, dm);
   L.enemy('rojoeiro', 14, 5.4, -45.5, Math.PI, dm);
   L.enemy('brutamonte', 0, standNY(nStepZ(4)), nStepZ(4), Math.PI, Object.assign({ minDiff: 1 }, dm));
-  L.item('rocket', 0, 6.0, -45.8);
+  L.item('rocket', 0, 5.9, -45.8);
   L.item('rockets', -6, 5.4, -46.3); L.item('rockets', 6, 5.4, -46.3);
   L.item('pamonha', -30, standNY(nStepZ(4)), nStepZ(4)); L.item('shells', 30, standNY(nStepZ(4)), nStepZ(4));
   L.item('manto', 34, 5.4, -46);
@@ -654,6 +654,7 @@ const LEVEL_EVENTS = {
   },
   key_green(g) {
     g.message('EMBOSCADA NO VESTIÁRIO!', 'big');
+    g.message('A CHAVE VERDE ABRE O ACESSO AO GRAMADO, NA BILHETERIA', 'small');
     g.spawnGroup([
       ['vileiro', -59, 0, 20], ['vileiro', -59, 0, 12], ['vileiro', -54, 0, 5],
       ['arremessador', -60, 0, 26], ['rojoeiro', -58, 0, -3, { minDiff: 1 }], ['vileiro', -53, 0, 20, { minDiff: 2 }],
@@ -686,6 +687,7 @@ const LEVEL_EVENTS = {
   press(g) { g.message('CABINES DE IMPRENSA', 'small'); g.checkpoint('CABINES'); },
   key_white(g) {
     g.message('OS VILEIROS SUBIRAM A ARQUIBANCADA SUL!', 'big');
+    g.message('A CHAVE BRANCA ABRE O PORTÃO DA ARQUIBANCADA NORTE', 'small');
     g.spawnGroup([
       ['rojoeiro', -30, standSY(sStepZ(7)), sStepZ(7)], ['rojoeiro', 30, standSY(sStepZ(7)), sStepZ(7)],
       ['vileiro', -20, 4, 42], ['vileiro', 20, 4, 42], ['vileiro', -30, standSY(sStepZ(3)), sStepZ(3)],

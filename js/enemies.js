@@ -27,7 +27,7 @@ const EDEFS = {
     pain: 0.18, painTime: 0.35, snd: { alert: 'brute_alert', pain: 'enemy_pain', death: 'brute_death' },
   },
   tigrao: {
-    name: 'TIGRÃO', hp: 3200, speed: 5.4, r: 0.95, h: 4.25, scale: 2.3, boss: true,
+    name: 'TIGRÃO', hp: 2600, speed: 5.4, r: 0.95, h: 4.25, scale: 2.3, boss: true,
     pain: 0.0, painTime: 0.2, snd: { alert: 'boss_roar', pain: 'boss_pain', death: 'boss_roar' },
   },
 };
@@ -123,6 +123,8 @@ class Enemy {
           else if (dist < d.keep * 1.3) { vx = px * this.strafe; vz = pz * this.strafe; speed *= 0.8; }
         }
         mx = vx; mz = vz;
+        // não entra no jogador: para a uma distância de ataque
+        if (dist < this.r + P.r + 0.45 && Math.abs(dy) < 1.5) { mx = 0; mz = 0; }
         this.yaw = approachAngle(this.yaw, this.canSee && dist < 20 ? toYaw : Math.atan2(-vx, -vz), dt * 8);
         // travado?
         if (this.st > 0.6) {

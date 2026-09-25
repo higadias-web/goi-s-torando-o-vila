@@ -389,35 +389,35 @@ class Player {
     } else if (w === 'rocket') {
       const k = t < 0.2 ? 1 - t / 0.2 : 0;
       const loaded = t > 0.55;
-      const M = hold(0.145, -0.1 + k * 0.03, -0.24 + k * 0.09, 0.05, k * 0.2);
-      P(M, 0, 0, -0.14, 0.078, 0.078, 0.6, 'pvc');
-      P(M, 0, 0, -0.43, 0.09, 0.09, 0.03, 'pvc', [0.4, 1, 0.5]);
-      P(M, 0, 0, 0.1, 0.09, 0.09, 0.03, 'pvc', [0.4, 1, 0.5]);
-      P(M, 0, 0.052, -0.2, 0.012, 0.016, 0.06, 'gun_metal');
-      if (loaded) P(M, 0, 0, -0.43 + Math.max(0, 0.7 - t) * 0.4, 0.05, 0.05, 0.06, 'rojao_paper', ONE, 0.3);
-      P(M, 0, -0.07, -0.1, 0.022, 0.06, 0.03, 'gun_metal');
-      arm(M, 0.0, -0.09, -0.1, 0.5, 0.12);
-      arm(M, -0.02, -0.06, -0.3, 0.3, -0.45, 0.3);
-      if (t < 0.08) flash(M, 0, 0, -0.47, 0.55);
-      if (t < 0.5 && Math.random() < 0.3) { const p = M34.apply(M, 0, 0, -0.46); FX.smoke(p[0], p[1], p[2], 1, [0.6, 0.6, 0.6], 0.15, 0.6, 0.6); }
+      const M = hold(0.15, -0.118 + k * 0.03, -0.3 + k * 0.08, 0.06, k * 0.2);
+      P(M, 0, 0, -0.1, 0.066, 0.066, 0.52, 'pvc');
+      P(M, 0, 0, -0.35, 0.076, 0.076, 0.025, 'pvc', [0.4, 1, 0.5]);
+      P(M, 0, 0, 0.1, 0.076, 0.076, 0.025, 'pvc', [0.4, 1, 0.5]);
+      P(M, 0, 0.04, -0.14, 0.01, 0.014, 0.05, 'gun_metal');
+      if (loaded) P(M, 0, 0, -0.35 + Math.max(0, 0.7 - t) * 0.35, 0.042, 0.042, 0.05, 'rojao_paper', ONE, 0.3);
+      P(M, 0, -0.055, -0.06, 0.02, 0.05, 0.026, 'gun_metal');
+      arm(M, 0.0, -0.075, -0.06, 0.5, 0.12);
+      arm(M, -0.018, -0.05, -0.24, 0.3, -0.45, 0.3);
+      if (t < 0.08) flash(M, 0, 0, -0.39, 0.5);
+      if (t < 0.5 && Math.random() < 0.3) { const p = M34.apply(M, 0, 0, -0.38); FX.smoke(p[0], p[1], p[2], 1, [0.6, 0.6, 0.6], 0.15, 0.6, 0.6); }
     } else if (w === 'mastro') {
       // repouso: mastro inclinado à direita com a bandeira no alto
-      let hx = 0.25, hy = -0.2, hz = -0.36, rx = -0.6, rz = -0.1;
+      let hx = 0.3, hy = -0.22, hz = -0.36, rx = -0.5, rz = -0.18;
       if (t < 0.48) {
         const s = t / 0.48;
-        if (s < 0.18) { const q = s / 0.18; rz = -0.1 - q * 0.45; rx = -0.6 + q * 0.35; hx = 0.25 + q * 0.03; }
+        if (s < 0.18) { const q = s / 0.18; rz = -0.18 - q * 0.37; rx = -0.5 + q * 0.25; hx = 0.3 - q * 0.02; }
         else if (s < 0.48) { const q = smooth((s - 0.18) / 0.3); rz = -0.55 + q * 2.0; rx = -0.25 - q * 1.1; hx = 0.28 - q * 0.3; hy = -0.2 - q * 0.05; }
-        else { const q = smooth((s - 0.48) / 0.52); rz = 1.45 - q * 1.55; rx = -1.35 + q * 0.75; hx = -0.02 + q * 0.27; hy = -0.25 + q * 0.05; }
+        else { const q = smooth((s - 0.48) / 0.52); rz = 1.45 - q * 1.63; rx = -1.35 + q * 0.85; hx = -0.02 + q * 0.32; hy = -0.25 + q * 0.03; }
       }
       const M = hold(hx, hy, hz, 0, rx, rz);
       P(M, 0, 0.3, 0, 0.026, 1.05, 0.026, 'gun_metal_light', [0.95, 0.95, 0.9]);
       P(M, 0, 0.84, 0, 0.045, 0.045, 0.045, 'gun_metal_light', [1, 0.85, 0.3], 0.2);
       arm(base, hx, hy, hz, 0.5, 0.25, 0);
       // bandeira tremulando
-      const nx = 6, ny = 3, Wf = 0.42, Hf = 0.3, time = G.time;
+      const nx = 6, ny = 3, Wf = 0.3, Hf = 0.21, time = G.time;
       const pt = (i, j) => {
         const wave = Math.sin(time * 7 - i * 0.9) * 0.05 * (i / nx) + (t < 0.48 ? Math.sin(t * 12) * 0.1 * (i / nx) : 0);
-        return M34.apply(M, 0.015 + i / nx * Wf, 0.8 - j / ny * Hf - (i / nx) * 0.05, wave);
+        return M34.apply(M, 0.015 + i / nx * Wf, 0.82 - j / ny * Hf - (i / nx) * 0.04, wave);
       };
       for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) {
         const a = pt(i, j + 1), b = pt(i + 1, j + 1), c = pt(i + 1, j), d = pt(i, j);

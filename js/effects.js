@@ -102,7 +102,7 @@ const FX = {
       let hitN = bestT !== Infinity ? [world.hit.nx, world.hit.ny, world.hit.nz] : null;
       let target = null;
       const tA = G.projActorHit(p, dx, dy, dz, len);
-      if (tA && tA.t < bestT) { bestT = tA.t; target = tA.target; hitN = null; }
+      if (tA && tA.t <= bestT + 0.01) { bestT = tA.t; target = tA.target; hitN = null; }
       if (bestT !== Infinity && bestT <= len + p.radius) {
         const hx = p.x + dx * Math.max(0, bestT - 0.05), hy = p.y + dy * Math.max(0, bestT - 0.05), hz = p.z + dz * Math.max(0, bestT - 0.05);
         this.projImpact(p, hx, hy, hz, hitN, target, [dx, dy, dz]);

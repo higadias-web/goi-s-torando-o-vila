@@ -28,7 +28,7 @@ const ITEMS = {
 
 const G = {
   state: 'loading', time: 0, fps: 60, loadMsg: '',
-  settings: Object.assign({ sens: 1.6, fov: 74, pix: 0, dither: true, vol: 0.8, music: 0.5, autohop: true, flips: true, invert: false, showFps: false }, lsGet('fjg_settings', {})),
+  settings: Object.assign({ sens: 1.6, fov: 74, pix: 0, dither: true, bright: 1.1, vol: 0.8, music: 0.5, autohop: true, flips: true, invert: false, showFps: false }, lsGet('fjg_settings', {})),
   diffIndex: 1, diff: DIFFS[1],
   enemies: [], items: [], doors: [], triggers: [], barrels: [], emitters: [], groups: {}, flags: {},
   keys: {}, mouse: {}, mdx: 0, mdy: 0, locked: false,
@@ -113,7 +113,8 @@ const G = {
       else if (e.type === 'emitter') this.emitters.push({ kind: e.kind, x: e.x, y: e.y, z: e.z, small: e.small, t: rand(0, 1) });
     }
     this.player = new Player(ps.x, ps.y, ps.z, ps.yaw);
-    this.stats = { kills: 0, total: this.enemies.length, secrets: 0, time: 0, deaths: 0 };
+    this.stats = { kills: 0, total: this.enemies.length, secrets: 0, time: 0, deaths: 0, goals: 0 };
+    this.ball = { pos: [4, 0.12, 3], vel: [0, 0, 0], r: 0.12, rx: 0, rz: 0, reset: 0, light: [1, 1, 1] };
     this.cp = null; this.lastCheckpoint = 'INÍCIO';
     this.checkpoint('INÍCIO', null, true);
     this.scoreT = 0; this.lastScore = '';
@@ -236,6 +237,7 @@ const G = {
     this.updateItems(dt);
     this.updateBarrels(dt);
     this.updateEmitters(dt);
+    this.updateBall(dt);
     FX.update(dt);
     this.checkGroups();
     this.shakeAmt = Math.max(0, this.shakeAmt - dt * 2.2);
@@ -256,10 +258,18 @@ const G = {
     this.updateScoreboard(false, dt);
   },
   separate() {
-    const E = this.enemies;
+    const E = this.enemies, P = this.player;
     for (let i = 0; i < E.length; i++) {
       const a = E[i];
       if (!a.alive) continue;
+      // afasta do jogador
+      if (P.alive) {
+        const dx = a.pos[0] - P.pos[0], dz = a.pos[2] - P.pos[2], rr = a.r + P.r + 0.1;
+        if (Math.abs(dx) < rr && Math.abs(dz) < rr && a.pos[1] < P.pos[1] + P.h && a.pos[1] + a.h > P.pos[1]) {
+          const d = Math.hypot(dx, dz) || 0.01;
+          if (d < rr) { const push = (rr - d) * 8 / a.scale; a.vel[0] += dx / d * push; a.vel[2] += dz / d * push; }
+        }
+      }
       for (let j = i + 1; j < E.length; j++) {
         const b = E[j];
         if (!b.alive) continue;
@@ -331,7 +341,7 @@ const G = {
     for (const it of this.items) {
       if (it.taken) continue;
       const dx = P.pos[0] - it.x, dz = P.pos[2] - it.z;
-      if (dx * dx + dz * dz < 1.2 && P.pos[1] < it.y + 1.1 && P.pos[1] + P.h > it.y - 0.2) {
+      if (dx * dx + dz * dz < 1.6 && P.pos[1] < it.y + 1.1 && P.pos[1] + P.h > it.y - 0.2) {
         const d = ITEMS[it.type];
         if (!d || !d.fn(P, this)) continue;
         it.taken = true;
@@ -547,7 +557,7 @@ const G = {
         let kind = 'expl';
         if (owner === 'player') { dd *= 0.35; kind = 'self'; }
         const dir = V3.norm([c[0] - x, c[1] - y, c[2] - z]);
-        const imp = (owner === 'player' ? 14 : 7) * k;
+        const imp = (owner === 'player' ? 12.5 : 7) * k;
         P.vel[0] += dir[0] * imp; P.vel[1] += Math.max(dir[1], 0.4) * imp * 1.1; P.vel[2] += dir[2] * imp;
         if (P.vel[1] > 0) P.onGround = false;
         this.damagePlayer(dd, [x, y, z], kind);
@@ -557,6 +567,68 @@ const G = {
       if (!b.alive || b.fuse >= 0) continue;
       if (Math.hypot(b.x - x, b.y + 0.5 - y, b.z - z) < r) this.damageBarrel(b, 100);
     }
+    const bl = this.ball, bd = V3.dist(bl.pos, [x, y, z]);
+    if (bd < r * 1.5) { const k = (1 - bd / (r * 1.5)) * 16, dir = V3.norm(V3.sub(bl.pos, [x, y - 0.5, z])); bl.vel[0] += dir[0] * k; bl.vel[1] += Math.abs(dir[1]) * k + 3; bl.vel[2] += dir[2] * k; }
+  },
+  updateBall(dt) {
+    const b = this.ball, W = this.world, P = this.player;
+    if (b.reset > 0) { b.reset -= dt; if (b.reset <= 0) { b.pos = [0, 3, 0]; b.vel = [0, 0, 0]; FX.smoke(0, 0.5, 0, 6, [0.9, 0.9, 0.9], 0.6, 1.2, 1); } }
+    // chute do jogador
+    if (P.alive) {
+      const dx = b.pos[0] - P.pos[0], dz = b.pos[2] - P.pos[2], d = Math.hypot(dx, dz);
+      if (d < P.r + b.r + 0.12 && b.pos[1] < P.pos[1] + 0.9 && b.pos[1] > P.pos[1] - 0.3) {
+        const pv = Math.hypot(P.vel[0], P.vel[2]);
+        const nx = dx / (d || 1), nz = dz / (d || 1);
+        const k = 3 + pv * 1.35;
+        b.vel[0] = nx * k + P.vel[0] * 0.3; b.vel[2] = nz * k + P.vel[2] * 0.3; b.vel[1] = Math.max(b.vel[1], 1.5 + pv * 0.35);
+        b.pos[0] = P.pos[0] + nx * (P.r + b.r + 0.13); b.pos[2] = P.pos[2] + nz * (P.r + b.r + 0.13);
+        if (pv > 4) AUDIO.play('punch', b.pos, 0.35);
+      }
+    }
+    // inimigos também chutam
+    for (const e of this.enemies) {
+      if (!e.alive) continue;
+      const dx = b.pos[0] - e.pos[0], dz = b.pos[2] - e.pos[2], d = Math.hypot(dx, dz);
+      if (d < e.r + b.r + 0.05 && b.pos[1] < e.pos[1] + 0.8) { const k = 4 + Math.hypot(e.vel[0], e.vel[2]); b.vel[0] = dx / (d || 1) * k; b.vel[2] = dz / (d || 1) * k; b.vel[1] = Math.max(b.vel[1], 2); }
+    }
+    b.vel[1] -= 18 * dt;
+    const sp = Math.hypot(b.vel[0], b.vel[1], b.vel[2]);
+    if (sp > 0.001) {
+      const len = sp * dt;
+      const t = W.raycast(b.pos[0], b.pos[1], b.pos[2], b.vel[0] / sp, b.vel[1] / sp, b.vel[2] / sp, len + b.r, F_SOLID);
+      if (t !== Infinity && t <= len + b.r) {
+        const h = W.hit, vn = b.vel[0] * h.nx + b.vel[1] * h.ny + b.vel[2] * h.nz;
+        // avança até encostar e reflete
+        const mv = Math.max(0, t - b.r);
+        b.pos[0] += b.vel[0] / sp * mv; b.pos[1] += b.vel[1] / sp * mv; b.pos[2] += b.vel[2] / sp * mv;
+        if (vn < 0) {
+          const bounce = h.ny > 0.5 ? 0.55 : 0.7;
+          b.vel[0] -= (1 + bounce) * vn * h.nx; b.vel[1] -= (1 + bounce) * vn * h.ny; b.vel[2] -= (1 + bounce) * vn * h.nz;
+        }
+        if (Math.abs(vn) > 2.5) AUDIO.play('land', b.pos, Math.min(0.5, Math.abs(vn) / 12));
+      } else { b.pos[0] += b.vel[0] * dt; b.pos[1] += b.vel[1] * dt; b.pos[2] += b.vel[2] * dt; }
+    }
+    // atrito no chão
+    const g = W.raycast(b.pos[0], b.pos[1], b.pos[2], 0, -1, 0, b.r + 0.03, F_SOLID);
+    if (g !== Infinity) {
+      if (g < b.r) b.pos[1] += b.r - g;
+      const f = Math.max(0, 1 - 1.1 * dt); b.vel[0] *= f; b.vel[2] *= f;
+      if (Math.abs(b.vel[1]) < 0.6) b.vel[1] = 0;
+    }
+    b.rx += b.vel[2] * dt / b.r; b.rz -= b.vel[0] * dt / b.r;
+    if (b.pos[1] < -20) { b.reset = 0.01; }
+    // gol!
+    if (b.reset <= 0 && Math.abs(b.pos[2]) < 3.62 && b.pos[1] < 2.42 && Math.abs(b.pos[0]) > 30.15 && Math.abs(b.pos[0]) < 32) {
+      b.reset = 3;
+      this.stats.goals++;
+      const home = b.pos[0] > 0;
+      HUD.bigMsg(home ? 'GOOOOOL DO VERDÃO!!!' : 'GOL CONTRA... MAS VALE!', 3);
+      AUDIO.play('crowd_cheer', null, 0.9);
+      AUDIO.chant(0.2);
+      FX.confetti(b.pos[0] > 0 ? 25 : -25, 10, 0, 80, 8);
+      if (home && this.player.hp < 100) this.player.hp = Math.min(100, this.player.hp + 10);
+    }
+    W.sampleProbe(b.pos[0], b.pos[2], b.light);
   },
   fireHitscan(eye, dirs, dmg, weapon) {
     const W = this.world, acc = new Map();
@@ -573,8 +645,12 @@ const G = {
       }
       for (const b of this.barrels) {
         if (!b.alive) continue;
-        const t = rayAABB(eye[0], eye[1], eye[2], d[0], d[1], d[2], [b.x - 0.3, b.y, b.z - 0.3, b.x + 0.3, b.y + 0.95, b.z + 0.3], best);
-        if (t < best) { best = t; barrel = b; target = null; }
+        const t = rayAABB(eye[0], eye[1], eye[2], d[0], d[1], d[2], [b.x - 0.3, b.y, b.z - 0.3, b.x + 0.3, b.y + 0.95, b.z + 0.3], best + 0.02);
+        if (t <= best + 0.01) { best = t; barrel = b; target = null; }
+      }
+      const bl = this.ball, br = bl.r;
+      if (rayAABB(eye[0], eye[1], eye[2], d[0], d[1], d[2], [bl.pos[0] - br, bl.pos[1] - br, bl.pos[2] - br, bl.pos[0] + br, bl.pos[1] + br, bl.pos[2] + br], best) < best) {
+        bl.vel[0] += d[0] * 4; bl.vel[1] += Math.max(1, d[1] * 4 + 1.5); bl.vel[2] += d[2] * 4;
       }
       const hp = [eye[0] + d[0] * best, eye[1] + d[1] * best, eye[2] + d[2] * best];
       if (target) {
@@ -708,6 +784,8 @@ const G = {
       emitItemModel(dyn, M, d.model, [l[0] * 1.3 + 0.12, l[1] * 1.3 + 0.12, l[2] * 1.3 + 0.12]);
       emitBillboard(add, cam, it.x, it.y + 0.4, it.z, 1.1, 1.1, 0, T.glow, [0.45, 0.45, 0.45], d.glow, 1);
     }
+    // bola
+    { const b = this.ball; if (b.reset <= 0 && visible(b.pos[0], b.pos[1], b.pos[2])) emitSphere(dyn, M34.mul(M34.trans(b.pos[0], b.pos[1], b.pos[2]), M34.mul(M34.rotX(b.rx), M34.mul(M34.rotZ(b.rz), M34.scale(b.r * 2, b.r * 2, b.r * 2)))), 8, 5, T.ball, [b.light[0] * 1.2 + 0.1, b.light[1] * 1.2 + 0.1, b.light[2] * 1.2 + 0.1]); }
     // inimigos
     for (const e of this.enemies) {
       if (e.gibbed || !visible(e.pos[0], e.pos[1] + 1, e.pos[2], 3 * e.scale)) continue;
@@ -748,7 +826,7 @@ const G = {
       const lt = W.sampleProbe(this.player.pos[0], this.player.pos[2], [0, 0, 0]);
       this.player.drawViewmodel(vm, vmAdd, cam, [lt[0] * 0.9 + 0.16, lt[1] * 0.9 + 0.16, lt[2] * 0.9 + 0.17]);
     }
-    const env = { fog: W.env.fog, fogD: W.env.fogD, bright: 1.0, moon: W.env.moonDir, time: this.time };
+    const env = { fog: W.env.fog, fogD: W.env.fogD, bright: this.settings.bright, moon: W.env.moonDir, time: this.time };
     R.render({ cam, env, dyn, add, vm, vmAdd, vmFov: 62 * DEG });
     // flash de tela
     const fr = this.flashR, fp = this.flashP;

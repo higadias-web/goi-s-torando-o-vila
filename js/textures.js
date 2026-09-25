@@ -913,6 +913,15 @@ defTex('scorch', (p, r) => {
   }
 }, { alpha: true });
 defTex('white', (p) => { p.fill([255, 255, 255, 255]); }, { q: 1 });
+defTex('ball', (p, r) => { // bola de futebol (gomos)
+  p.fill([236, 236, 232, 255]);
+  const spots = [[8, 16], [40, 16], [24, 48], [56, 48]];
+  for (const [x, y] of spots) {
+    for (let a = 0; a < 5; a++) { const t = a / 5 * TAU; p.line(x, y, x + Math.cos(t) * 14, y + Math.sin(t) * 14, [150, 150, 146, 255]); }
+    p.circle(x, y, 6, [20, 20, 24, 255]);
+  }
+  for (let i = 0; i < 40; i++) p.set(r() * 64, r() * 64, [200, 200, 196, 255]);
+});
 defTex('confetti', (p, r) => { p.fill([255, 255, 255, 255]); }, { q: 1 });
 defTex('shockwave', (p, r) => {
   p.fill([0, 0, 0, 0]);

@@ -88,7 +88,7 @@ const HUD = {
       const n = P.ammo[w.ammo];
       this.text(String(n), W - 32, y0 - 1, n > 0 ? '#ffe9a0' : '#f55', 3, 'right', '#310');
       this.iconAmmo(W - 26, y0 + 2, w.ammo);
-    } else this.text('∞'.replace('∞', '--'), W - 32, y0 - 1, '#ffe9a0', 3, 'right', '#310');
+    } else this.text('--', W - 32, y0 - 1, '#ffe9a0', 3, 'right', '#310');
     this.text(w.name + (P.cur === 'pistol' && P.dual ? ' x2' : ''), W - 10, y0 - 14, '#9c9', 1, 'right');
     // slots
     let sx = W - 10 - 6 * 12;
@@ -199,6 +199,7 @@ const HUD = {
       ['SEGREDOS', s.secrets + ' / 3'],
       ['VEZES TORADO', String(s.deaths)],
     ];
+    if (s.goals) rows.push(['GOLS', String(s.goals)]);
     rows.forEach(([k, v], i) => {
       const y = H * 0.36 + i * 20;
       this.text(k, W / 2 - 10, y, '#9c9', 2, 'right');
@@ -244,7 +245,7 @@ const MENU = {
         { label: 'CONTINUAR', act: () => { this.close(); G.resume(); } },
         { label: 'OPÇÕES', act: () => this.open('options') },
         { label: 'CONTROLES', act: () => this.open('controls') },
-        { label: 'VOLTAR AO CHECKPOINT', act: () => { this.close(); G.respawn(); G.resume(); } },
+        { label: 'VOLTAR AO CHECKPOINT', act: () => { this.close(); G.resume(); G.respawn(); } },
         { label: 'REINICIAR FASE', act: () => { this.close(); G.newGame(G.diffIndex); } },
         { label: 'MENU PRINCIPAL', act: () => { this.close(); G.toTitle(); } },
       ];
@@ -253,6 +254,8 @@ const MENU = {
         { label: 'CAMPO DE VISÃO', val: () => S.fov + 'º', adj: (d) => { S.fov = clamp(S.fov + d * 2, 56, 110); } },
         { label: 'PIXELIZAÇÃO', val: () => S.pix === 0 ? 'AUTO' : S.pix + 'X', adj: (d) => { S.pix = clamp(S.pix + d, 0, 6); G.resize(); } },
         { label: 'DITHERING', val: () => S.dither ? 'SIM' : 'NÃO', adj: () => { S.dither = !S.dither; } },
+        { label: 'BRILHO', val: () => Math.round(S.bright * 100) + '%', adj: (d) => { S.bright = clamp(Math.round((S.bright + d * 0.1) * 10) / 10, 0.6, 2); } },
+        { label: 'TELA CHEIA', val: () => document.fullscreenElement ? 'SIM' : 'NÃO', adj: () => { try { if (document.fullscreenElement) document.exitFullscreen(); else document.documentElement.requestFullscreen(); } catch (e) { /* sem suporte */ } } },
         { label: 'VOLUME', val: () => Math.round(S.vol * 100) + '%', adj: (d) => { S.vol = clamp(Math.round((S.vol + d * 0.1) * 10) / 10, 0, 1); AUDIO.setVolume(S.vol); } },
         { label: 'MÚSICA', val: () => Math.round(S.music * 100) + '%', adj: (d) => { S.music = clamp(Math.round((S.music + d * 0.1) * 10) / 10, 0, 1); AUDIO.setMusicVolume(S.music); } },
         { label: 'PULO AUTOMÁTICO', val: () => S.autohop ? 'SIM' : 'NÃO', adj: () => { S.autohop = !S.autohop; } },

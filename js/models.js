@@ -62,6 +62,19 @@ function emitCylinder(batch, M, segs, texSide, texTop, light, tint, em = 0) {
     }
   }
 }
+// esfera low-poly (raio 0.5 em espaço local)
+function emitSphere(batch, M, segs, rings, tex, light, tint = [1, 1, 1], em = 0) {
+  const P = (i, j) => {
+    const th = j / rings * Math.PI, ph = i / segs * TAU;
+    return M34.apply(M, Math.sin(th) * Math.cos(ph) * 0.5, Math.cos(th) * 0.5, Math.sin(th) * Math.sin(ph) * 0.5);
+  };
+  for (let j = 0; j < rings; j++) for (let i = 0; i < segs; i++) {
+    const a = P(i, j + 1), b = P(i + 1, j + 1), c = P(i + 1, j), d = P(i, j);
+    const ny = Math.cos((j + 0.5) / rings * Math.PI);
+    const s = 0.72 + 0.28 * ny;
+    batch.quad([...b, ...a, ...d, ...c], (i + 1) / segs * 2, j / rings, i / segs * 2, (j + 1) / rings, tex, light[0] * s, light[1] * s, light[2] * s, tint[0], tint[1], tint[2], em);
+  }
+}
 // billboard voltado para a câmera
 function emitBillboard(batch, cam, x, y, z, w, h, rot, layer, light, tint, em = 1, upright = false) {
   let rx = cam.r[0], ry = cam.r[1], rz = cam.r[2], ux = cam.u[0], uy = cam.u[1], uz = cam.u[2];
